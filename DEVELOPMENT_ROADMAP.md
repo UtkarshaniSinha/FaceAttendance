@@ -1,18 +1,18 @@
 # Development Roadmap
 
-**Current position:** Phase 2 design complete; waiting for review. Each phase will be tested before being called complete.
+**Current position:** GitHub preparation is complete and the Phase 1 application foundation is implemented locally. Each later phase must be tested before being called complete.
 
 | Phase | Goal | Evidence of completion | Status |
 | --- | --- | --- | --- |
 | 1 | Audit the existing prototype | `PROJECT_AUDIT.md` and changelog entry | Complete |
 | 2 | Design architecture, schema, evaluation, privacy, deployment, and test plan | Phase 2 documents in the repository root | Complete; awaiting approval |
-| GitHub milestone | Create/prepare repository, review files, then commit/push only with explicit publication approval | Remote URL and approved Phase 2 commit | Blocked until Phase 2 approval |
-| 3 | Set up supported Python, dependency lock/specification, configuration, Git hygiene | Reproducible local setup and environment checks | Not started |
-| 4 | Implement data foundation and secure administrator login | Migrations, model tests, authentication tests | Not started |
-| 5 | Implement employees, departments, shifts, policies, consent, and biometric lifecycle | CRUD/integration tests; manual consent flow check | Not started |
+| GitHub milestone | Prepare a public-safe repository and require explicit approval before each commit/push | Existing public remote and initial documentation commit | Complete; no Phase 1 commit/push yet |
+| 3 | Set up supported Python, dependency specification, configuration, and Git hygiene | Reproducible local setup and environment checks | Complete locally; Python 3.12 environment and dependencies verified |
+| 4 | Implement the Flask, SQLite, employee, and basic attendance foundation | Application factory; model/service/route tests | Complete locally; 12 tests passing |
+| 5 | Implement secure administrator access, migrations, departments, shifts, policies, consent, and biometric lifecycle | Authentication/CRUD/integration tests; manual consent-flow check | Not started |
 | 6 | Review/approve dataset and model licences; collect and validate a consented evaluation dataset | Licence decision log, capture-quality log, consent/retention confirmation, independent session split, unknown-subject set, and quality-gate sign-off | Not started; mandatory before model evaluation |
 | 7 | Evaluate a pretrained ArcFace-style model and preserved LBPH baseline using validated data plus approved public verification benchmarks | Completed `RECOGNITION_EVALUATION.md` results and recommendation | Not started |
-| 8 | Implement recognition adapter and attendance engine | Tests for check-in/out, cooldown, duplicate prevention, late/early calculation, camera failures | Not started |
+| 8 | Implement recognition adapter and expanded attendance engine | Tests for check-in/out, cooldown, duplicate prevention, late/early calculation, camera failures | Not started; Phase 1 only prevents one manual record per employee/day |
 | 9 | Build dashboard, kiosk feedback, history, and reports | UI/manual accessibility checks and export tests | Not started |
 | 10 | Hardening and release preparation | Security/privacy review, deployment guide, test report, final GitHub review | Not started |
 

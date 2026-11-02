@@ -4,6 +4,16 @@ All noteworthy project milestones are recorded here in plain language. Dates use
 
 ## [Unreleased]
 
+### 2026-11-03 — Phase 1 Flask and SQLite foundation
+
+**What changed:** Implemented a local Flask application foundation with an application factory, SQLite configuration, employee and attendance models, employee management pages, a basic dashboard, and service-level duplicate-attendance rules.
+
+**Verification:** `pytest -q` completed with **12 passed**. The application factory, SQLite database creation, and Python compilation checks also completed successfully. OpenCV contrib imports successfully and exposes `cv2.face`; no recognition pipeline was run.
+
+**Important scope boundary:** This change does not implement authentication, biometric enrolment/storage, camera capture, face recognition, liveness, recognition evaluation, reports, or production hardening. The legacy dataset and LBPH prototype were not modified, downloaded, trained, or benchmarked.
+
+**Git status:** The changes remain uncommitted and unpushed pending explicit review and approval.
+
 ### 2026-11-02 — Public-repository preparation
 
 **What changed:** Added public-ready documentation and configuration templates, and prepared rules for excluding sensitive biometric and runtime material.

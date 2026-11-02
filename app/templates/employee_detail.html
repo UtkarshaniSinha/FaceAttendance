@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}{{ employee.full_name }} · FaceAttendance{% endblock %}
+{% block content %}
+  <section class="detail-header"><div><p class="eyebrow">Employee profile</p><h1>{{ employee.full_name }}</h1><p>{{ employee.employee_code }} · {{ employee.department or 'No department assigned' }}</p></div><span class="badge {{ 'badge-muted' if not employee.is_active else '' }}">{{ 'Active' if employee.is_active else 'Inactive' }}</span></section>
+  <section class="action-row"><a class="button" href="{{ url_for('main.edit_employee', employee_id=employee.id) }}">Edit employee</a>{% if employee.is_active %}<form method="post" action="{{ url_for('main.deactivate_employee_view', employee_id=employee.id) }}"><button class="button button-danger" type="submit">Deactivate</button></form>{% endif %}</section>
+  <section class="panel"><div class="panel-heading"><div><p class="eyebrow">History</p><h2>Attendance records</h2></div></div>{% if attendance_records %}<div class="table-wrap"><table><thead><tr><th>Date</th><th>Check-in</th><th>Source</th><th>Status</th></tr></thead><tbody>{% for record in attendance_records %}<tr><td>{{ record.attendance_date.strftime('%d %b %Y') }}</td><td>{{ record.check_in_time.strftime('%H:%M') }}</td><td>{{ record.recognition_method }}</td><td>{{ record.status }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state"><p>No attendance has been recorded for this employee.</p></div>{% endif %}</section>
+{% endblock %}

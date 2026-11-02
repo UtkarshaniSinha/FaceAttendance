@@ -1,51 +1,50 @@
-# Employee Face Recognition Attendance Management System
+# FaceAttendance
 
-> **Project status: planning and GitHub preparation.** The web application has not been implemented and no recognition model has been evaluated in this repository yet.
+FaceAttendance is an in-progress, privacy-aware employee attendance project. Phase 1 provides a small Flask and SQLite foundation for employee records and manual daily attendance; it does **not** provide face recognition or production-ready attendance management.
 
-This project is being developed into a privacy-aware employee attendance system. The planned application will use a webcam to capture a face, generate a biometric embedding with an approved pretrained recognition model, apply configurable attendance rules, and provide an administrator dashboard and reports.
+## What is implemented and verified
 
-## What exists today
+- Flask application factory and local SQLite configuration.
+- SQLAlchemy `Employee` and `Attendance` models, including one attendance record per employee per calendar day.
+- Server-rendered dashboard and employee listing, registration, editing, and deactivation pages.
+- Manual attendance service with active-employee and duplicate-day protection.
+- Twelve pytest tests covering application startup/configuration, employee validation/flows, the employee-attendance relationship, duplicate prevention, inactive employees, and a foreign-key constraint.
 
-This repository preserves an early OpenCV/LBPH learning prototype. It contains scripts to download a small legacy face dataset containing seven celebrity identities (140 images), train an LBPH model, make webcam predictions, and attempt basic CSV attendance logging.
+Run the verified foundation locally after installing the dependencies:
 
-These scripts are **legacy prototype code**, not the planned application. They are retained for learning and comparison, but the related dataset/model artefacts are excluded from Git because they contain biometric material. Their limitations are documented in [PROJECT_AUDIT.md](PROJECT_AUDIT.md) and [DATASET_QUALITY_REPORT.md](DATASET_QUALITY_REPORT.md).
+```powershell
+.\.venv\Scripts\Activate.ps1
+python run.py
+```
 
-## Planned architecture
+Open `http://127.0.0.1:5000`. The local database is created in the ignored `instance/` directory.
 
-- **Computer vision:** Python, OpenCV, and a replaceable ArcFace-style embedding adapter.
-- **Backend:** Flask with REST endpoints and server-rendered administrator pages.
-- **Data:** SQLAlchemy; SQLite for local development and PostgreSQL for deployment.
-- **Frontend:** HTML, CSS, JavaScript, and charts for attendance analytics.
-- **Quality:** pytest, documented evaluation, and Docker preparation where appropriate.
+## Deliberately not implemented
 
-The research pipeline is planned as: face image -> detection and alignment -> normalized embedding -> cosine-similarity comparison -> calibrated known/unknown decision -> policy-controlled attendance action.
+- Administrator authentication, roles, CSRF protection, migrations, departments, shifts, policy calculations, reports, exports, and audit logs.
+- Camera capture, biometric enrolment, biometric storage, face recognition, liveness checks, model evaluation, or an attendance kiosk.
+- Deployment hardening and production configuration.
 
-## Licence, privacy, and scope
+The existing OpenCV/LBPH Python scripts are **legacy prototype code** retained unchanged for learning and comparison. They are not part of the Flask application and must not be treated as a reliable attendance solution. The preserved image dataset is a small celebrity collection with documented quality and provenance limitations; it is excluded from Git and is unsuitable for employee-attendance evaluation.
 
-- The preferred ArcFace-style research option uses public pretrained model weights only after their terms are approved. InsightFace code is MIT, but its public pretrained weights are non-commercial research only.
-- Public verification benchmarks and employee attendance evaluation are separate. Actual employees must be enrolled with consent through the future application.
-- This repository must never contain employee photographs, biometric templates, downloaded public face datasets, model weights, local databases, attendance exports, credentials, or secrets.
-- Liveness/presentation-attack detection is optional and not implemented. Basic motion/blink checks are not strong spoofing protection.
+## Recognition and data boundary
+
+No face dataset, pretrained model weight, biometric template, employee photograph, or recognition benchmark has been downloaded, run, or evaluated for this Flask foundation. Any future pretrained ArcFace-style evaluation remains non-commercial portfolio research only, pending model-weight licence approval. Public benchmarks and consented employee evaluation must remain separate.
 
 ## Documentation
 
 | Document | Purpose |
 | --- | --- |
-| [PROJECT_AUDIT.md](PROJECT_AUDIT.md) | Audit of the original prototype and its risks. |
-| [PROJECT_ARCHITECTURE.md](PROJECT_ARCHITECTURE.md) | Planned system structure, security, and deployment design. |
-| [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md) | Proposed relational schema and attendance-rule model. |
-| [DATASET_QUALITY_REPORT.md](DATASET_QUALITY_REPORT.md) | Read-only audit of the preserved legacy dataset. |
-| [PUBLIC_DATASET_RESEARCH.md](PUBLIC_DATASET_RESEARCH.md) | Official-source dataset/model research and licence gates. |
+| [PROJECT_AUDIT.md](PROJECT_AUDIT.md) | Audit of the legacy prototype and its risks. |
+| [PROJECT_ARCHITECTURE.md](PROJECT_ARCHITECTURE.md) | Current architecture and future security boundaries. |
+| [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md) | Proposed full relational schema. |
+| [DATASET_QUALITY_REPORT.md](DATASET_QUALITY_REPORT.md) | Read-only audit of the excluded legacy dataset. |
+| [PUBLIC_DATASET_RESEARCH.md](PUBLIC_DATASET_RESEARCH.md) | Official-source dataset/model research and approval gates. |
 | [RECOGNITION_EVALUATION.md](RECOGNITION_EVALUATION.md) | Evaluation methodology and recognition limitations. |
-| [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md) | Phased plan and learning objectives. |
-| [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md) | Planned local setup; currently untested. |
-| [TESTING.md](TESTING.md) | Test strategy and honest test status. |
-| [CHANGELOG.md](CHANGELOG.md) | Human-readable project history. |
+| [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md) | Implementation milestones. |
+| [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md) | Local setup instructions. |
+| [TESTING.md](TESTING.md) | Verified and planned tests. |
 
-## Setup status
+## Public-repository policy
 
-A supported Python runtime is not configured in the audited workspace, so installation commands and dependencies have not been executed here. See [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md) for the planned, explicitly untested setup path.
-
-## Repository policy
-
-This public repository is documentation- and source-code-ready only. It deliberately excludes all biometric assets and runtime data. Do not add such files without a documented consent, retention, and licence review.
+This repository must never include employee photographs, biometric templates, downloaded face datasets, model weights, local databases, attendance records/exports, credentials, secrets, or local environment files. See [`.gitignore`](.gitignore) before adding files.

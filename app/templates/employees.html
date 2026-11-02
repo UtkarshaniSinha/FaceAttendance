@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}Employees · FaceAttendance{% endblock %}
+{% block content %}
+  <section class="panel"><div class="panel-heading"><div><p class="eyebrow">Directory</p><h1>Employees</h1></div><a class="button" href="{{ url_for('main.create_employee_view') }}">Register employee</a></div>
+  {% if employees %}<div class="table-wrap"><table><thead><tr><th>Employee</th><th>Department</th><th>Status</th><th></th></tr></thead><tbody>{% for employee in employees %}<tr><td><strong>{{ employee.full_name }}</strong><small>{{ employee.employee_code }}</small></td><td>{{ employee.department or '—' }}</td><td><span class="badge {{ 'badge-muted' if not employee.is_active else '' }}">{{ 'Active' if employee.is_active else 'Inactive' }}</span></td><td><a href="{{ url_for('main.employee_detail', employee_id=employee.id) }}">View</a></td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state"><h2>No employees registered</h2><p>Start by registering the first employee. Face enrolment is introduced in a later phase.</p><a class="button" href="{{ url_for('main.create_employee_view') }}">Register employee</a></div>{% endif %}</section>
+{% endblock %}

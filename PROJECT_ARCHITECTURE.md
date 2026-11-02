@@ -1,7 +1,7 @@
 # Project Architecture
 
-**Phase:** 2 - Approved design; no production implementation has started.  
-**Last updated:** 2 November 2026
+**Phase:** 1 foundation implemented; recognition and production features remain planned.
+**Last updated:** 3 November 2026
 
 ## 1. Purpose
 
@@ -9,7 +9,7 @@ The final system will be a web application for authorised administrators to mana
 
 Python and OpenCV will remain central to the project. Flask will organise the web application, while OpenCV will handle camera access and image preparation.
 
-This document describes the proposed architecture. It does not indicate that these modules have already been implemented.
+This document describes the target architecture. The Phase 1 Flask/SQLite employee foundation is implemented; modules not identified as implemented below remain planned.
 
 ## 2. Chosen Architecture
 
@@ -177,7 +177,7 @@ The planned application dependencies include:
 
 Additional reporting and database-driver packages will be introduced when their respective modules are implemented.
 
-**Current environment limitation:** Windows has `py.exe`, but no default Python runtime is currently available, and `python` is not available on `PATH`. Therefore, full runtime dependency, database, camera, and model tests have not been performed.
+**Current verification:** A project-local Python 3.12 virtual environment has installed and imported the declared dependencies. Flask/SQLite foundation tests are passing. Camera, recognition, model, and hardware tests have not been performed.
 
 ## 10. Model and Licensing Boundary
 
@@ -200,14 +200,14 @@ The following distinction must be maintained throughout development:
 |---|---|
 | Original OpenCV/LBPH prototype | Exists as legacy code |
 | Existing face dataset | Exists but has documented quality limitations |
-| Flask application | Planned, not implemented |
-| SQLAlchemy database | Planned, not implemented |
+| Flask application factory, dashboard, and templates | Implemented and tested locally |
+| SQLAlchemy SQLite employee/attendance foundation | Implemented and tested locally |
 | Administrator authentication | Planned, not implemented |
-| Employee management | Planned, not implemented |
+| Employee management (code, name, department, active status) | Implemented and tested locally; no authentication yet |
 | Biometric registration workflow | Planned, not implemented |
 | New embedding-based recognition | Research/planning stage |
-| Attendance dashboard | Planned, not implemented |
-| Automated application test suite | Planned, not implemented |
+| Attendance dashboard | Basic count summary implemented; reporting is planned |
+| Automated application test suite | Phase 1 tests implemented (12 passing); broader coverage planned |
 | Production deployment | Not started |
 
 This architecture is an approved design for future development, not evidence of a completed or production-ready attendance system.

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · FaceAttendance{% endblock %}
+{% block content %}
+  <section class="hero">
+    <div><p class="eyebrow">Attendance overview</p><h1>Good to see you.</h1><p>Live figures from the local attendance database.</p></div>
+    <a class="button" href="{{ url_for('main.create_employee_view') }}">Register employee</a>
+  </section>
+  <section class="metric-grid" aria-label="Attendance statistics">
+    <article class="metric"><span>Total employees</span><strong>{{ total_employees }}</strong></article>
+    <article class="metric"><span>Active employees</span><strong>{{ active_employees }}</strong></article>
+    <article class="metric"><span>Present today</span><strong>{{ today_attendance }}</strong></article>
+  </section>
+  <section class="panel"><div class="panel-heading"><div><p class="eyebrow">Latest activity</p><h2>Recent attendance</h2></div><a href="{{ url_for('main.employees') }}">Manage employees</a></div>
+    {% if recent_attendance %}<div class="table-wrap"><table><thead><tr><th>Employee</th><th>Department</th><th>Checked in</th><th>Source</th></tr></thead><tbody>{% for record in recent_attendance %}<tr><td><a href="{{ url_for('main.employee_detail', employee_id=record.employee.id) }}">{{ record.employee.full_name }}</a><small>{{ record.employee.employee_code }}</small></td><td>{{ record.employee.department or '—' }}</td><td>{{ record.check_in_time.strftime('%d %b %Y, %H:%M') }}</td><td><span class="badge">{{ record.recognition_method }}</span></td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state"><h3>No attendance yet</h3><p>Attendance records will appear here after the future recognition flow records them.</p></div>{% endif %}
+  </section>
+{% endblock %}
