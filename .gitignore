@@ -1,0 +1,72 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+secrets/
+credentials/
+
+# Python and test artefacts
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# IDE and operating-system files
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+desktop.ini
+.agents/
+
+# Biometric data, public datasets, models, and captures
+/dataset/
+/data/
+/captures/
+/biometrics/
+/templates/
+/embeddings/
+/models/
+/weights/
+*.onnx
+*.pt
+*.pth
+*.h5
+*.keras
+trainer.yml
+labels.pickle
+
+# Local runtime data, databases, and attendance exports
+/instance/
+*.db
+*.sqlite
+*.sqlite3
+attendance.csv/
+attendance*.csv
+/exports/
+/reports/
+/logs/
+/tmp/
+/temp/
+
+# Build and packaging artefacts
+build/
+dist/
+*.egg-info/

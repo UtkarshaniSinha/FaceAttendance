@@ -1,0 +1,22 @@
+# Planned dependencies for the future Flask application and retained legacy scripts.
+# Untested: Phase 3 has not started and the workspace has no usable Python runtime.
+
+Flask>=3.0,<4.0
+SQLAlchemy>=2.0,<3.0
+Flask-Migrate>=4.0,<5.0
+Flask-Login>=0.6,<1.0
+Flask-WTF>=1.2,<2.0
+python-dotenv>=1.0,<2.0
+
+# Legacy face-recognition prototype and dataset utilities
+opencv-contrib-python>=4.8,<5.0
+numpy>=1.26,<3.0
+pandas>=2.0,<4.0
+Pillow>=10.0,<13.0
+scikit-learn>=1.4,<2.0
+
+# Testing
+pytest>=8.0,<9.0
+
+# Add database-driver and recognition-model packages only after
+# their implementation phase and licence review are approved.
