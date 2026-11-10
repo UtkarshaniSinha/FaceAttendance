@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · FaceAttendance{% endblock %}
+{% block content %}
+  <section class="form-card">
+    <p class="eyebrow">Something went wrong</p>
+    <h1>{{ title }}</h1>
+    <p class="form-intro">{{ message }}</p>
+    <div class="form-actions"><a class="button" href="{{ url_for('main.dashboard') }}">Back to dashboard</a></div>
+  </section>
+{% endblock %}

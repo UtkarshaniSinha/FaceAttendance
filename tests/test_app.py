@@ -52,3 +52,12 @@ def test_dashboard_uses_database_statistics(client, app):
     assert b"EMP-001" in response.data
     assert b">2<" in response.data
     assert b">1<" in response.data
+
+
+def test_times_are_displayed_in_the_organisation_timezone(app):
+    to_local = app.jinja_env.filters["localtime"]
+    stored_utc = datetime(2026, 11, 10, 10, 47)  # SQLite gives back naive UTC values
+
+    assert app.config["ORGANIZATION_TIMEZONE"] == "Asia/Kolkata"
+    assert to_local(stored_utc, "%H:%M") == "16:17"  # UTC+05:30
+    assert to_local(None) == "—"

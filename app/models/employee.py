@@ -28,6 +28,12 @@ class Employee(db.Model):
     attendances: Mapped[list["Attendance"]] = relationship(
         back_populates="employee", cascade="all, delete-orphan"
     )
+    biometric_consent: Mapped["BiometricConsent | None"] = relationship(
+        back_populates="employee", uselist=False, cascade="all, delete-orphan"
+    )
+    face_enrollment: Mapped["FaceEnrollment | None"] = relationship(
+        back_populates="employee", uselist=False, cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<Employee {self.employee_code}>"

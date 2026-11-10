@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Capture · {{ employee.full_name }} · FaceAttendance{% endblock %}
+{% block content %}
+  <section class="detail-header">
+    <div>
+      <p class="eyebrow"><a href="{{ url_for('enrollment.index', employee_id=employee.id) }}">← Face enrolment</a></p>
+      <h1>Capture face images</h1>
+      <p>{{ employee.full_name }} · {{ employee.employee_code }}</p>
+    </div>
+    <span class="badge badge-warning">In progress</span>
+  </section>
+
+  <div id="capture-app" class="capture-layout"
+       data-upload-url="{{ url_for('enrollment.upload_sample', employee_id=employee.id) }}"
+       data-delete-url="{{ url_for('enrollment.discard_sample', employee_id=employee.id, sample_id=0) }}"
+       data-minimum="{{ minimum_samples }}"
+       data-maximum="{{ maximum_samples }}">
+
+    <section class="panel">
+      <div class="panel-heading"><div><p class="eyebrow">Camera</p><h2>Take a photo</h2></div></div>
+      <ul class="tips">
+        <li>One person in frame, facing the camera, about an arm's length away.</li>
+        <li>Light in front of the face, not behind it. Remove sunglasses and masks.</li>
+        <li>Vary the pose slightly between photos (straight, small turns, small tilt).</li>
+      </ul>
+      <div class="camera-frame">
+        <video id="camera" autoplay playsinline muted hidden></video>
+        <img id="preview" alt="Captured photo preview" hidden>
+        <div id="camera-placeholder" class="camera-placeholder">Camera is off</div>
+      </div>
+      <canvas id="snapshot" hidden></canvas>
+      <p id="capture-message" class="capture-message" role="status" aria-live="polite"></p>
+      <div class="action-row capture-controls">
+        <button id="start-camera" class="button" type="button">Start camera</button>
+        <button id="take-photo" class="button" type="button" hidden>Capture photo</button>
+        <button id="use-photo" class="button" type="button" hidden>Use this photo</button>
+        <button id="retake-photo" class="button button-secondary" type="button" hidden>Retake</button>
+      </div>
+      <details class="upload-fallback">
+        <summary>No webcam? Upload a photo instead</summary>
+        <p class="muted">JPEG or PNG, up to 5 MB. The same server checks apply.</p>
+        <input id="file-input" type="file" accept="image/jpeg,image/png">
+      </details>
+    </section>
+
+    <section class="panel">
+      <div class="panel-heading">
+        <div><p class="eyebrow">Progress</p><h2>Accepted images</h2></div>
+        <strong id="sample-count">{{ samples|length }}</strong>
+      </div>
+      <div class="progress" aria-hidden="true"><span id="progress-bar"></span></div>
+      <p class="muted">At least {{ minimum_samples }}, at most {{ maximum_samples }}. Stored images are never displayed again; thumbnails below exist only in this browser tab.</p>
+      <ul id="sample-list" class="sample-list">
+        {% for sample in samples %}
+          <li data-sample-id="{{ sample.id }}">
+            <span class="thumb thumb-empty">#{{ loop.index }}</span>
+            <span>Accepted {{ sample.created_at|localtime('%H:%M:%S') }}</span>
+            <button class="link-button" type="button" data-remove>Remove</button>
+          </li>
+        {% endfor %}
+      </ul>
+      <form method="post" action="{{ url_for('enrollment.complete', employee_id=employee.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button id="complete-button" class="button" type="submit" {% if samples|length < minimum_samples %}disabled{% endif %}>Complete enrolment</button>
+      </form>
+    </section>
+  </div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/enrollment.js') }}"></script>{% endblock %}

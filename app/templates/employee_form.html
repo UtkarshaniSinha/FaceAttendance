@@ -1,11 +1,19 @@
 {% extends "base.html" %}
 {% block title %}{{ 'Edit' if employee else 'Register' }} employee · FaceAttendance{% endblock %}
 {% block content %}
-  <section class="form-card"><p class="eyebrow">Employee management</p><h1>{{ 'Edit employee' if employee else 'Register employee' }}</h1><p class="form-intro">Employee details are stored locally. Face enrolment is not part of this phase.</p>
-  <form method="post" novalidate>
-    <label for="employee_code">Employee ID <input id="employee_code" name="employee_code" maxlength="32" required value="{{ request.form.get('employee_code', employee.employee_code if employee else '') }}"></label>
-    <label for="full_name">Full name <input id="full_name" name="full_name" maxlength="120" required value="{{ request.form.get('full_name', employee.full_name if employee else '') }}"></label>
-    <label for="department">Department <input id="department" name="department" maxlength="120" value="{{ request.form.get('department', employee.department if employee and employee.department else '') }}"></label>
-    <div class="form-actions"><a href="{{ url_for('main.employees') }}">Cancel</a><button class="button" type="submit">{{ 'Save changes' if employee else 'Register employee' }}</button></div>
-  </form></section>
+  <section class="form-card">
+    <p class="eyebrow">Employee management</p>
+    <h1>{{ 'Edit employee' if employee else 'Register employee' }}</h1>
+    <p class="form-intro">Employee details are stored locally. Face enrolment is a separate, consent-based step on the employee's profile.</p>
+    <form method="post" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label for="employee_code">Employee ID <input id="employee_code" name="employee_code" maxlength="32" required value="{{ request.form.get('employee_code', employee.employee_code if employee else '') }}"></label>
+      <label for="full_name">Full name <input id="full_name" name="full_name" maxlength="120" required value="{{ request.form.get('full_name', employee.full_name if employee else '') }}"></label>
+      <label for="department">Department <input id="department" name="department" maxlength="120" value="{{ request.form.get('department', employee.department if employee and employee.department else '') }}"></label>
+      <div class="form-actions">
+        <a href="{{ url_for('main.employees') }}">Cancel</a>
+        <button class="button" type="submit">{{ 'Save changes' if employee else 'Register employee' }}</button>
+      </div>
+    </form>
+  </section>
 {% endblock %}

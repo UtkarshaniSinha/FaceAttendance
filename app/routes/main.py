@@ -9,7 +9,7 @@ from sqlalchemy import func, select
 from werkzeug.exceptions import NotFound
 
 from app.extensions import db
-from app.models import Attendance, Employee
+from app.models import Attendance, Employee, FaceEnrollment
 from app.services.employee_service import (
     EmployeeValidationError,
     create_employee,
@@ -41,6 +41,9 @@ def dashboard():
     today_attendance = db.session.scalar(
         select(func.count()).select_from(Attendance).where(Attendance.attendance_date == today)
     ) or 0
+    enrolled_employees = db.session.scalar(
+        select(func.count()).select_from(FaceEnrollment).where(FaceEnrollment.status == "complete")
+    ) or 0
     recent_attendance = list(
         db.session.scalars(
             select(Attendance).order_by(Attendance.check_in_time.desc()).limit(8)
@@ -51,6 +54,7 @@ def dashboard():
         total_employees=total_employees,
         active_employees=active_employees,
         today_attendance=today_attendance,
+        enrolled_employees=enrolled_employees,
         recent_attendance=recent_attendance,
     )
 

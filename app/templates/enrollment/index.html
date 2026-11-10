@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Face enrolment · {{ employee.full_name }} · FaceAttendance{% endblock %}
+{% block content %}
+  {% set consent = employee.biometric_consent %}
+  {% set enrollment = employee.face_enrollment %}
+  <section class="detail-header">
+    <div>
+      <p class="eyebrow"><a href="{{ url_for('main.employee_detail', employee_id=employee.id) }}">← {{ employee.full_name }}</a></p>
+      <h1>Face enrolment</h1>
+      <p>{{ employee.employee_code }} · {{ employee.department or 'No department assigned' }}</p>
+    </div>
+    <span class="badge {{ enrollment_badge(employee) }}">{{ status }}</span>
+  </section>
+
+  {% if not employee.is_active %}
+    <div class="notice notice-error">This employee is inactive, so new consent and enrolment are disabled. Existing face images can still be deleted below.</div>
+  {% endif %}
+
+  <section class="panel">
+    <div class="panel-heading"><div><p class="eyebrow">Step 1</p><h2>Biometric consent</h2></div></div>
+    <div class="consent-notice">
+      <p><strong>What is collected:</strong> {{ minimum_samples }} or more still photos of the employee's face, taken with this computer's camera.</p>
+      <p><strong>Why:</strong> to recognise the employee when marking attendance in this portfolio application.</p>
+      <p><strong>Where it is kept:</strong> in a private folder on this computer, outside the website's public files, under random file names. Images are never shown on any page.</p>
+      <p><strong>Your choice:</strong> consent can be withdrawn at any time. Withdrawing deletes every stored face image. Attendance history is kept.</p>
+      <p class="muted">Notice version: {{ notice_version }}. This is a student project, not a legally reviewed privacy notice.</p>
+    </div>
+
+    {% if consent and consent.is_valid %}
+      <p class="notice notice-success">Consent given on {{ consent.granted_at|localtime('%d %b %Y, %H:%M') }} (notice {{ consent.notice_version }}).</p>
+    {% elif employee.is_active %}
+      {% if consent %}<p class="notice notice-error">Consent was withdrawn on {{ consent.withdrawn_at|localtime('%d %b %Y, %H:%M') }}. The employee may give consent again.</p>{% endif %}
+      <form method="post" action="{{ url_for('enrollment.consent', employee_id=employee.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label class="checkbox"><input type="checkbox" name="affirm" value="yes" required> {{ employee.full_name }} has read this notice and explicitly agrees to face enrolment.</label>
+        <div><button class="button" type="submit">Record consent</button></div>
+      </form>
+    {% endif %}
+  </section>
+
+  {% if consent and consent.is_valid %}
+    <section class="panel">
+      <div class="panel-heading"><div><p class="eyebrow">Step 2</p><h2>Capture face images</h2></div></div>
+      {% if enrollment and enrollment.status == 'complete' %}
+        <p>Enrolment completed with <strong>{{ enrollment.accepted_sample_count }}</strong> accepted image(s) on {{ enrollment.updated_at|localtime('%d %b %Y, %H:%M') }}.</p>
+        <p class="muted">To replace the images, delete the enrolment below and capture again.</p>
+      {% elif enrollment %}
+        <p>Enrolment in progress: <strong>{{ enrollment.accepted_sample_count }}</strong> of at least {{ minimum_samples }} images accepted.</p>
+        {% if employee.is_active %}<a class="button" href="{{ url_for('enrollment.capture', employee_id=employee.id) }}">Continue capture</a>{% endif %}
+      {% elif employee.is_active %}
+        <p>The camera opens in your browser. Each photo is checked on the server for exactly one clear, well-lit face before it is stored.</p>
+        <form method="post" action="{{ url_for('enrollment.start', employee_id=employee.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div><button class="button" type="submit">Start enrolment</button></div>
+        </form>
+      {% endif %}
+    </section>
+  {% endif %}
+
+  {% if (consent and consent.is_valid) or enrollment %}
+    <section class="panel panel-danger">
+      <div class="panel-heading"><div><p class="eyebrow">Privacy controls</p><h2>Delete or withdraw</h2></div></div>
+      <div class="action-row">
+        {% if enrollment %}
+          <form method="post" action="{{ url_for('enrollment.delete_data', employee_id=employee.id) }}" data-confirm="Delete all stored face images for {{ employee.full_name }}? Consent stays recorded.">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="button button-secondary" type="submit">Delete face images</button>
+          </form>
+        {% endif %}
+        {% if consent and consent.is_valid %}
+          <form method="post" action="{{ url_for('enrollment.withdraw', employee_id=employee.id) }}" data-confirm="Withdraw consent and permanently delete all face images for {{ employee.full_name }}? Attendance history is kept.">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="button button-danger" type="submit">Withdraw consent</button>
+          </form>
+        {% endif %}
+      </div>
+    </section>
+  {% endif %}
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/confirm.js') }}"></script>{% endblock %}

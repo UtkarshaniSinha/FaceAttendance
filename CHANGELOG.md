@@ -4,6 +4,26 @@ All noteworthy project milestones are recorded here in plain language. Dates use
 
 ## [Unreleased]
 
+### 2026-11-10 — Phase 2 face enrolment and CSRF fix
+
+**Bug fixed — "400 Bad Request: Invalid CSRF token" on registration.** The CSRF check (`app/csrf.py`) ran on every POST, but no template sent a token: `employee_form.html` and the deactivate form had no `csrf_token` field. Tests did not notice because CSRF was switched off whenever `TESTING` was on. Every POST form now includes the token, JavaScript sends it in an `X-CSRF-Token` header, and protection is controlled by its own `CSRF_ENABLED` setting, so tests run with it **on**. An expired or invalid token shows a friendly "Form expired" page (or a JSON error for JavaScript).
+
+**New behaviour — consent-based face enrolment:**
+
+1. The employee profile links to a **Face enrolment** page with a plain-language consent notice; consent needs an explicit checkbox and is stored with its notice version and time.
+2. **Start enrolment** opens a capture page. The browser camera (`getUserMedia`) shows a live view; each photo is previewed and can be **retaken** before it is sent. A file-upload fallback exists for machines without a webcam.
+3. The server checks each image: JPEG/PNG only, size and pixel limits, **exactly one face** (OpenCV Haar cascade), minimum face size, and face-region **brightness, contrast and sharpness**. The reason for any rejection is shown to the user.
+4. Accepted images are re-encoded as JPEG (removing EXIF/GPS metadata) and stored under random names in `instance/biometrics/`, outside the public `static/` folder and excluded by `.gitignore`. Pages and API replies never contain file names or paths.
+5. Accepted images can be removed individually; completion needs 3–10 accepted images.
+6. Enrolment status appears on the employee list, profile and dashboard ("Faces enrolled").
+7. **Delete face images** removes files and records but keeps consent; **Withdraw consent** removes all images and marks consent withdrawn. Attendance history is kept in both cases.
+
+**Other fixes:** pytest now collects only `tests/` (the legacy root scripts are not tests); stored UTC times are shown in `ORGANIZATION_TIMEZONE`; `tzdata` added so timezones work on Windows.
+
+**Verification:** `python -m pytest -q` → **52 passed** (Linux, Python 3.13). The running app was also exercised in headless Chrome with Chrome's fake camera; see `TESTING.md` for exactly what was and was not tested.
+
+**Not done in this phase:** face recognition, attendance marking from the camera, authentication, liveness detection. No dataset or model was downloaded.
+
 ### 2026-11-03 — Phase 1 Flask and SQLite foundation
 
 **What changed:** Implemented a local Flask application foundation with an application factory, SQLite configuration, employee and attendance models, employee management pages, a basic dashboard, and service-level duplicate-attendance rules.
@@ -12,7 +32,7 @@ All noteworthy project milestones are recorded here in plain language. Dates use
 
 **Important scope boundary:** This change does not implement authentication, biometric enrolment/storage, camera capture, face recognition, liveness, recognition evaluation, reports, or production hardening. The legacy dataset and LBPH prototype were not modified, downloaded, trained, or benchmarked.
 
-**Git status:** The changes remain uncommitted and unpushed pending explicit review and approval.
+**Git status:** Committed locally as `395fd67`; not pushed.
 
 ### 2026-11-02 — Public-repository preparation
 
