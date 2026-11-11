@@ -92,9 +92,40 @@ run.py           starts the app
 
 No `.env` file is needed. The database, a random secret key and the face photos are created in the `instance\` folder, which is never committed.
 
+## How to use it
+
+1. **Create the admin account.** On first start the app opens a setup page. Passwords need at least 10 characters.
+2. **Add employees.** Go to **Employees → Register employee** and enter their details.
+3. **Enrol a face.** Open the employee's profile and choose **Manage face enrolment**. The employee reads and accepts the consent notice. Then take 3 to 10 photos with the webcam (or upload them). Retake any photo that the server rejects.
+4. **Create a kiosk account (optional).** Under **Users → Add user**, create a user with the *kiosk* role. A kiosk account can only open the check-in page, so it is safe to leave signed in on a shared screen.
+5. **Check in.** Open **Face check-in** (signed in as admin or kiosk) and let the employee look at the camera. The page shows who was recognised, or why nobody was.
+6. **See attendance.** The dashboard shows today's attendance and recent check-ins.
+
+### Forgot the admin password?
+
+Run this in the project folder (with the virtual environment active). It asks for a new password and also unlocks the account:
+
+```powershell
+flask --app run reset-password <username>
+```
+
+## Configuration
+
+Everything works with the defaults. To change a setting, copy `.env.example` to `.env` and uncomment the line. The most useful ones:
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| `ORGANIZATION_TIMEZONE` | `Asia/Kolkata` | Timezone used to show times and to decide what "today" is |
+| `RECOGNITION_MATCH_THRESHOLD` | `0.45` | Minimum cosine similarity for a match |
+| `RECOGNITION_AMBIGUITY_MARGIN` | `0.05` | Minimum gap between the best and second-best person |
+| `SESSION_IDLE_MINUTES` | `30` | Admin sign-out after this many idle minutes |
+| `KIOSK_SESSION_IDLE_MINUTES` | `720` | The same for kiosk accounts |
+| `LOGIN_MAX_ATTEMPTS` / `LOGIN_LOCKOUT_MINUTES` | `5` / `15` | Lockout after wrong passwords |
+| `FLASK_DEBUG` | off | Set to `1` only while developing |
+
 ## Tests
 
-Run them from VS Code's Testing panel, or with `pytest -q`. There are 199 tests (sign-in, CSRF, consent, photo checks, matching rules, duplicate check-ins, deletion and more). The matching tests use made-up embeddings, so they check the logic, not how well real faces are recognised. See [docs/evaluation.md](docs/evaluation.md) for what has and hasn't been tested.
+Run them from VS Code's Testing panel, or with `pytest -q`. There are 205 tests (sign-in, CSRF, consent, photo checks, matching rules, duplicate check-ins, deletion and more). The matching tests use made-up embeddings, so they check the logic, not how well real faces are recognised. See [docs/evaluation.md](docs/evaluation.md) for what has and hasn't been tested.
 
 ## Security
 
@@ -128,7 +159,11 @@ Not included (future work): two-factor login, HTTPS and an audit log.
 
 ## Challenges and what I learned
 
-_(Write this yourself: for example the CSRF "Invalid token" bug on the register form, why LBPH didn't work, the Windows file-lock bug when deleting photos, and how you prevented duplicate attendance.)_
+- **"400 Invalid CSRF token" on the register form.** The app checked a CSRF token on every POST, but no form actually sent one, so every save failed. I added the token to every form and to the `X-CSRF-Token` header in JavaScript. The tests used to switch CSRF off, which is why they never caught it. Now they run with CSRF on.
+- **LBPH didn't work.** My first recogniser was trained and tested on the same low-resolution celebrity photos, so its good results meant nothing. I learned to keep test data separate, and switched to a pretrained embedding model (see above).
+- **Windows file locks when deleting photos.** On Windows a file that was just written can still be held open for a moment by another process (usually antivirus or the search indexer). Deleting it then fails with `WinError 32`. The storage code now retries the delete a few times over about 1.5 seconds.
+- **Duplicate attendance.** Checking "is there already a record today?" isn't enough when two requests arrive at the same moment. A unique rule on (employee, date) in the database makes the second one fail safely. A test sends 8 check-ins at once to prove it.
+- **Privacy is part of the design.** Asking for consent first, storing photos outside `static/` with random names, and deleting embeddings when consent is withdrawn all had to be planned from the start. They were hard to add afterwards.
 
 ## Future improvements
 

@@ -2,7 +2,7 @@
 
 ## What the automated tests check
 
-199 pytest tests, run with `pytest -q` or VS Code's Testing panel.
+205 pytest tests, run with `pytest -q` or VS Code's Testing panel.
 
 | Area | Examples |
 | --- | --- |
