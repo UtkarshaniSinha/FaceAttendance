@@ -10,6 +10,7 @@ from app.models import Attendance, Employee
 from app.services.attendance_service import (
     AttendanceError,
     DuplicateAttendanceError,
+    organization_today,
     record_attendance,
 )
 
@@ -23,7 +24,7 @@ def test_attendance_record_has_employee_relationship(app):
         record = record_attendance(employee, recognition_method="manual")
 
         assert record.employee == employee
-        assert record.attendance_date == date.today()
+        assert record.attendance_date == organization_today()
         assert record.recognition_method == "manual"
 
 

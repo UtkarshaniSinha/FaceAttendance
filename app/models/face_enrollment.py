@@ -29,7 +29,12 @@ class BiometricConsent(db.Model):
 
     @property
     def is_valid(self) -> bool:
+        """Granted and not withdrawn (it may still be for an older notice)."""
         return self.status == "granted" and self.withdrawn_at is None
+
+    def covers(self, notice_version: str) -> bool:
+        """Valid consent given to this exact notice version."""
+        return self.is_valid and self.notice_version == notice_version
 
 
 class FaceEnrollment(db.Model):
@@ -60,3 +65,6 @@ class EnrollmentSample(db.Model):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
     enrollment: Mapped[FaceEnrollment] = relationship(back_populates="samples")
+    template: Mapped["FaceTemplate | None"] = relationship(
+        back_populates="sample", uselist=False, cascade="all, delete-orphan"
+    )

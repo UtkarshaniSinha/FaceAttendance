@@ -1,40 +1,75 @@
 {% extends "base.html" %}
 {% block title %}{{ employee.full_name }} · FaceAttendance{% endblock %}
 {% block content %}
-  <section class="detail-header">
+  <header class="page-header">
     <div>
-      <p class="eyebrow">Employee profile</p>
-      <h1>{{ employee.full_name }}</h1>
-      <p>{{ employee.employee_code }} · {{ employee.department or 'No department assigned' }}</p>
+      <nav class="breadcrumb" aria-label="Breadcrumb"><ol><li><a href="{{ url_for('main.employees') }}">Employees</a></li></ol></nav>
+      <div class="title-row">
+        <h1>{{ employee.full_name }}</h1>
+        {% if not employee.is_active %}<span class="badge badge-muted">Inactive</span>{% endif %}
+      </div>
+      <p class="page-subtitle">{{ employee.employee_code }}{% if employee.department %}, {{ employee.department }}{% endif %}</p>
     </div>
-    <span class="badge {{ 'badge-muted' if not employee.is_active else '' }}">{{ 'Active' if employee.is_active else 'Inactive' }}</span>
-  </section>
-  <section class="action-row">
-    <a class="button" href="{{ url_for('main.edit_employee', employee_id=employee.id) }}">Edit employee</a>
-    {% if employee.is_active %}
-      <form method="post" action="{{ url_for('main.deactivate_employee_view', employee_id=employee.id) }}">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button class="button button-danger" type="submit">Deactivate</button>
-      </form>
-    {% endif %}
-  </section>
-  <section class="panel">
-    <div class="panel-heading">
-      <div><p class="eyebrow">Biometrics</p><h2>Face enrolment</h2></div>
-      <span class="badge {{ enrollment_badge(employee) }}">{{ enrollment_status(employee) }}</span>
+    <div class="page-actions">
+      <a class="button button-secondary" href="{{ url_for('main.edit_employee', employee_id=employee.id) }}">Edit details</a>
+      {% if employee.is_active %}
+        <form method="post" action="{{ url_for('main.deactivate_employee_view', employee_id=employee.id) }}" data-confirm="Deactivate {{ employee.full_name }}? They will not be able to check in until reactivated. Attendance history is kept.">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="button button-danger" type="submit">Deactivate</button>
+        </form>
+      {% else %}
+        <form method="post" action="{{ url_for('main.reactivate_employee_view', employee_id=employee.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="button" type="submit">Reactivate</button>
+        </form>
+      {% endif %}
     </div>
-    <p class="muted">Face images are captured only after explicit consent and are stored privately on this computer.</p>
-    <a class="button" href="{{ url_for('enrollment.index', employee_id=employee.id) }}">Manage face enrolment</a>
-  </section>
-  <section class="panel">
-    <div class="panel-heading"><div><p class="eyebrow">History</p><h2>Attendance records</h2></div></div>
-    {% if attendance_records %}
-      <div class="table-wrap"><table>
-        <thead><tr><th>Date</th><th>Check-in</th><th>Source</th><th>Status</th></tr></thead>
-        <tbody>{% for record in attendance_records %}<tr><td>{{ record.attendance_date.strftime('%d %b %Y') }}</td><td>{{ record.check_in_time|localtime('%H:%M') }}</td><td>{{ record.recognition_method }}</td><td>{{ record.status }}</td></tr>{% endfor %}</tbody>
-      </table></div>
-    {% else %}
-      <div class="empty-state"><p>No attendance has been recorded for this employee.</p></div>
-    {% endif %}
-  </section>
+  </header>
+
+  {% if not employee.is_active %}
+    <div class="notice notice-warning">This employee is inactive and cannot check in. Attendance history is kept.</div>
+  {% endif %}
+
+  <div class="layout-split">
+    <section class="section">
+      <div class="section-header"><h2>Attendance history</h2><span class="hint">{{ attendance_records|length }} record{{ '' if attendance_records|length == 1 else 's' }}</span></div>
+      {% if attendance_records %}
+        <div class="table-wrap"><table>
+          <thead><tr><th scope="col">Date</th><th scope="col">Check-in</th><th scope="col">Method</th><th scope="col">Status</th></tr></thead>
+          <tbody>{% for record in attendance_records %}
+            <tr>
+              <td class="num">{{ record.attendance_date.strftime('%d %b %Y') }}</td>
+              <td class="num">{{ record.check_in_time|localtime('%H:%M') }}</td>
+              <td>{{ record.recognition_method|capitalize }}</td>
+              <td>{{ record.status|capitalize }}</td>
+            </tr>
+          {% endfor %}</tbody>
+        </table></div>
+      {% else %}
+        <div class="empty-state"><p>No attendance has been recorded for this employee.</p></div>
+      {% endif %}
+    </section>
+
+    <div class="stack">
+      <section class="section">
+        <div class="section-header"><h2>Face enrolment</h2><span class="badge {{ enrollment_badge(employee) }}">{{ enrollment_status(employee) }}</span></div>
+        <div class="section-body">
+          <p class="muted">Face images are captured only after explicit consent and are stored privately on this computer.</p>
+          <a class="button button-secondary" href="{{ url_for('enrollment.index', employee_id=employee.id) }}">Manage face enrolment</a>
+        </div>
+      </section>
+      <section class="section">
+        <div class="section-header"><h2>Details</h2></div>
+        <div class="section-body">
+          <dl class="facts">
+            <dt>Employee ID</dt><dd>{{ employee.employee_code }}</dd>
+            <dt>Department</dt><dd>{{ employee.department or 'Not assigned' }}</dd>
+            <dt>Status</dt><dd>{{ 'Active' if employee.is_active else 'Inactive' }}</dd>
+            <dt>Registered</dt><dd class="num">{{ employee.registered_at|localtime('%d %b %Y') }}</dd>
+          </dl>
+        </div>
+      </section>
+    </div>
+  </div>
 {% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/confirm.js') }}"></script>{% endblock %}

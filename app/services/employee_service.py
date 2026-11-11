@@ -87,3 +87,10 @@ def deactivate_employee(employee: Employee) -> None:
 
     employee.is_active = False
     db.session.commit()
+
+
+def reactivate_employee(employee: Employee) -> None:
+    """Undo a deactivation. Consent and enrolment are unchanged and still checked."""
+
+    employee.is_active = True
+    db.session.commit()

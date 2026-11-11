@@ -68,3 +68,36 @@ def test_employee_listing_editing_and_deactivation(client, app):
         assert employee.employee_code == "EMP-201"
         assert employee.full_name == "Riya Kapoor"
         assert employee.is_active is False
+
+
+def test_deactivation_asks_for_confirmation_and_can_be_undone(client, app):
+    with app.app_context():
+        employee = Employee(employee_code="EMP-301", full_name="Neha Kulkarni")
+        db.session.add(employee)
+        db.session.commit()
+        employee_id = employee.id
+
+    profile = client.get(f"/employees/{employee_id}").data
+    assert b"data-confirm=" in profile and b"confirm.js" in profile
+
+    client.post(f"/employees/{employee_id}/deactivate")
+    inactive = client.get(f"/employees/{employee_id}").data
+    assert b"Reactivate" in inactive and b">Deactivate<" not in inactive
+
+    response = client.post(f"/employees/{employee_id}/reactivate", follow_redirects=True)
+    assert b"was reactivated" in response.data
+    with app.app_context():
+        assert db.session.get(Employee, employee_id).is_active is True
+    again = client.post(f"/employees/{employee_id}/reactivate", follow_redirects=True)
+    assert b"already active" in again.data
+
+
+def test_reactivation_requires_csrf(client, app):
+    with app.app_context():
+        employee = Employee(employee_code="EMP-302", full_name="Ravi Patil", is_active=False)
+        db.session.add(employee)
+        db.session.commit()
+        employee_id = employee.id
+    assert client.post(f"/employees/{employee_id}/reactivate", csrf_token="forged").status_code == 400
+    with app.app_context():
+        assert db.session.get(Employee, employee_id).is_active is False

@@ -1,19 +1,17 @@
-# Phase 1 application foundation (verified locally with Python 3.12).
+# FaceAttendance application and tests (verified with Python 3.12 on Windows).
+# Legacy LBPH prototype scripts need requirements-legacy.txt as well.
 Flask>=3.0,<4.0
 Flask-SQLAlchemy>=3.1,<4.0
 SQLAlchemy>=2.0,<3.0
 python-dotenv>=1.0,<2.0
 tzdata>=2024.1  # timezone database for Windows (zoneinfo)
 
-# Retained legacy prototype and future, approved recognition work.
+# Camera images, face detection and recognition (YuNet + SFace run inside OpenCV).
 opencv-contrib-python>=4.8,<5.0
 numpy>=1.26,<3.0
-pandas>=2.0,<4.0
 Pillow>=10.0,<13.0
-scikit-learn>=1.4,<2.0
 
 # Automated tests.
 pytest>=8.0,<9.0
 
-# Do not add pretrained-model packages, downloaded weights, or datasets until
-# their separate licence and download approval is recorded.
+# Model files are downloaded separately (see Setup in README.md), never via pip or Git.

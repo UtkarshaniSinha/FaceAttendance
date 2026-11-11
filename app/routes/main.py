@@ -2,18 +2,18 @@
 
 from __future__ import annotations
 
-from datetime import date
-
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from sqlalchemy import func, select
 from werkzeug.exceptions import NotFound
 
 from app.extensions import db
 from app.models import Attendance, Employee, FaceEnrollment
+from app.services.attendance_service import organization_today
 from app.services.employee_service import (
     EmployeeValidationError,
     create_employee,
     deactivate_employee,
+    reactivate_employee,
     list_employees,
     update_employee,
 )
@@ -33,7 +33,7 @@ def _get_employee_or_404(employee_id: int) -> Employee:
 def dashboard():
     """Render database-backed dashboard statistics."""
 
-    today = date.today()
+    today = organization_today()  # attendance day in ORGANIZATION_TIMEZONE
     total_employees = db.session.scalar(select(func.count()).select_from(Employee)) or 0
     active_employees = db.session.scalar(
         select(func.count()).select_from(Employee).where(Employee.is_active.is_(True))
@@ -133,4 +133,17 @@ def deactivate_employee_view(employee_id: int):
         flash(f"{employee.full_name} was deactivated.", "success")
     else:
         flash(f"{employee.full_name} is already inactive.", "error")
+    return redirect(url_for("main.employee_detail", employee_id=employee.id))
+
+
+@main_bp.post("/employees/<int:employee_id>/reactivate")
+def reactivate_employee_view(employee_id: int):
+    """Make an inactive employee active again (attendance history is unchanged)."""
+
+    employee = _get_employee_or_404(employee_id)
+    if not employee.is_active:
+        reactivate_employee(employee)
+        flash(f"{employee.full_name} was reactivated.", "success")
+    else:
+        flash(f"{employee.full_name} is already active.", "error")
     return redirect(url_for("main.employee_detail", employee_id=employee.id))

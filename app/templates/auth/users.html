@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Users · FaceAttendance{% endblock %}
+{% block content %}
+  <header class="page-header">
+    <div>
+      <h1>Users</h1>
+      <p class="page-subtitle">Accounts that can sign in to this app. Accounts lock for {{ config.LOGIN_LOCKOUT_MINUTES }} minutes after {{ config.LOGIN_MAX_ATTEMPTS }} wrong passwords in a row.</p>
+    </div>
+    <a class="button" href="{{ url_for('auth.create_user_view') }}">Add user</a>
+  </header>
+  <section class="section">
+    <div class="table-wrap"><table>
+      <thead><tr><th>Username</th><th>Role</th><th>Status</th><th>Last sign-in</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for user in users %}
+          <tr>
+            <td>{{ user.username }}{% if user.id == current_user().id %} <span class="badge badge-neutral">you</span>{% endif %}</td>
+            <td>{{ user.role }}</td>
+            <td>
+              {% if not user.is_active %}<span class="badge badge-muted">Disabled</span>
+              {% elif user.locked_now() %}<span class="badge badge-warning">Locked</span>
+              {% else %}Active{% endif %}
+            </td>
+            <td>{{ user.last_login_at | localtime }}</td>
+            <td class="actions-cell">
+              {% if user.locked_now() %}
+                <form class="inline-form" method="post" action="{{ url_for('auth.unlock', user_id=user.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="button button-secondary button-small" type="submit">Unlock</button>
+                </form>
+              {% endif %}
+              {% if user.id != current_user().id %}
+                {% if user.is_active %}
+                  <form class="inline-form" method="post" action="{{ url_for('auth.deactivate', user_id=user.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="button button-secondary button-small" type="submit">Disable</button>
+                  </form>
+                {% else %}
+                  <form class="inline-form" method="post" action="{{ url_for('auth.reactivate', user_id=user.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="button button-secondary button-small" type="submit">Enable</button>
+                  </form>
+                {% endif %}
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table></div>
+  </section>
+{% endblock %}

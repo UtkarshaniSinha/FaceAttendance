@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Sign in · FaceAttendance{% endblock %}
+{% block content %}
+  <header class="page-header">
+    <div>
+      <h1>Sign in</h1>
+      <p class="page-subtitle">Administrators manage employees and enrolment. Kiosk accounts can only use face check-in.</p>
+    </div>
+  </header>
+  <section class="section form-section auth-panel">
+    <div class="section-body">
+      <form class="form" method="post" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="field">
+          <label for="username">Username</label>
+          <input id="username" name="username" maxlength="32" required autocomplete="username" autocapitalize="none" autofocus value="{{ request.form.get('username', '') }}">
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" maxlength="128" required autocomplete="current-password">
+        </div>
+        <div class="form-actions">
+          <button class="button" type="submit">Sign in</button>
+        </div>
+      </form>
+    </div>
+  </section>
+{% endblock %}

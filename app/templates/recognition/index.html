@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Face check-in · FaceAttendance{% endblock %}
+{% block content %}
+  <header class="page-header">
+    <div>
+      <div class="title-row">
+        <h1>Face check-in</h1>
+        <span class="badge {{ 'badge-danger' if model_error else '' }}">{{ 'Model not installed' if model_error else 'Model ready' }}</span>
+      </div>
+      <p class="page-subtitle">A confident match with an eligible, enrolled employee records today's attendance. Unknown or ambiguous faces never do.</p>
+    </div>
+  </header>
+
+  {% if model_error %}
+    <div class="notice notice-error">{{ model_error }}</div>
+  {% endif %}
+
+  <div id="recognition-app" class="layout-capture"
+       data-check-in-url="{{ url_for('recognition.check_in_capture') }}">
+    <section class="section">
+      <div class="section-header"><h2>Camera</h2></div>
+      <div class="section-body">
+        <div class="camera-frame">
+          <video id="camera" autoplay playsinline muted hidden></video>
+          <img id="preview" alt="Captured photo preview" hidden>
+          <div id="camera-placeholder" class="camera-placeholder">Camera is off</div>
+        </div>
+        <canvas id="snapshot" hidden></canvas>
+        <p id="capture-message" class="capture-message" role="status" aria-live="polite"></p>
+        <div class="button-row capture-controls">
+          <button id="start-camera" class="button" type="button" {% if model_error %}disabled{% endif %}>Start camera</button>
+          <button id="check-in" class="button" type="button" hidden>Capture and check in</button>
+        </div>
+        <details class="upload-fallback">
+          <summary>No webcam? Check in with a photo instead</summary>
+          <label class="visually-hidden" for="file-input">Photo file</label>
+          <input id="file-input" type="file" accept="image/jpeg,image/png" {% if model_error %}disabled{% endif %}>
+        </details>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header"><h2>Check-in result</h2></div>
+      <div class="section-body">
+        <div id="result" class="result-card result-idle" aria-live="polite">
+          <strong id="result-title">No capture yet</strong>
+          <p id="result-detail" class="muted">Employees who can be recognised: {{ gallery_size }}</p>
+        </div>
+        <dl class="facts settings-list">
+          <dt>Match threshold</dt><dd class="num">{{ threshold }}</dd>
+          <dt>Ambiguity margin</dt><dd class="num">{{ margin }}</dd>
+          <dt>Attendance day</dt><dd>{{ timezone }}</dd>
+        </dl>
+        <p class="muted">A similarity score is not a probability. These thresholds are uncalibrated starting values. One attendance record per employee per day.</p>
+      </div>
+    </section>
+  </div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/recognition.js') }}"></script>{% endblock %}

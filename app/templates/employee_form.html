@@ -1,19 +1,39 @@
 {% extends "base.html" %}
 {% block title %}{{ 'Edit' if employee else 'Register' }} employee · FaceAttendance{% endblock %}
 {% block content %}
-  <section class="form-card">
-    <p class="eyebrow">Employee management</p>
-    <h1>{{ 'Edit employee' if employee else 'Register employee' }}</h1>
-    <p class="form-intro">Employee details are stored locally. Face enrolment is a separate, consent-based step on the employee's profile.</p>
-    <form method="post" novalidate>
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <label for="employee_code">Employee ID <input id="employee_code" name="employee_code" maxlength="32" required value="{{ request.form.get('employee_code', employee.employee_code if employee else '') }}"></label>
-      <label for="full_name">Full name <input id="full_name" name="full_name" maxlength="120" required value="{{ request.form.get('full_name', employee.full_name if employee else '') }}"></label>
-      <label for="department">Department <input id="department" name="department" maxlength="120" value="{{ request.form.get('department', employee.department if employee and employee.department else '') }}"></label>
-      <div class="form-actions">
-        <a href="{{ url_for('main.employees') }}">Cancel</a>
-        <button class="button" type="submit">{{ 'Save changes' if employee else 'Register employee' }}</button>
-      </div>
-    </form>
+  <header class="page-header">
+    <div>
+      <nav class="breadcrumb" aria-label="Breadcrumb"><ol>
+        <li><a href="{{ url_for('main.employees') }}">Employees</a></li>
+        {% if employee %}<li><a href="{{ url_for('main.employee_detail', employee_id=employee.id) }}">{{ employee.full_name }}</a></li>{% endif %}
+      </ol></nav>
+      <h1>{{ 'Edit employee' if employee else 'Register employee' }}</h1>
+      <p class="page-subtitle">Employee details are stored locally. Face enrolment is a separate, consent-based step on the employee's profile.</p>
+    </div>
+  </header>
+
+  <section class="section form-section">
+    <div class="section-body">
+      <form class="form" method="post" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="field">
+          <label for="employee_code">Employee ID</label>
+          <input id="employee_code" name="employee_code" maxlength="32" required autocomplete="off" value="{{ request.form.get('employee_code', employee.employee_code if employee else '') }}">
+          <p class="field-hint">Must be unique, up to 32 characters.</p>
+        </div>
+        <div class="field">
+          <label for="full_name">Full name</label>
+          <input id="full_name" name="full_name" maxlength="120" required autocomplete="off" value="{{ request.form.get('full_name', employee.full_name if employee else '') }}">
+        </div>
+        <div class="field">
+          <label for="department">Department <span class="optional">(optional)</span></label>
+          <input id="department" name="department" maxlength="120" autocomplete="off" value="{{ request.form.get('department', employee.department if employee and employee.department else '') }}">
+        </div>
+        <div class="form-actions">
+          <button class="button" type="submit">{{ 'Save changes' if employee else 'Register employee' }}</button>
+          <a class="button button-secondary" href="{{ url_for('main.employee_detail', employee_id=employee.id) if employee else url_for('main.employees') }}">Cancel</a>
+        </div>
+      </form>
+    </div>
   </section>
 {% endblock %}

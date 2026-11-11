@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Add user · FaceAttendance{% endblock %}
+{% block content %}
+  <header class="page-header">
+    <div>
+      <nav class="breadcrumb" aria-label="Breadcrumb"><ol>
+        <li><a href="{{ url_for('auth.users') }}">Users</a></li>
+      </ol></nav>
+      <h1>Add user</h1>
+      <p class="page-subtitle">Use a kiosk account for a shared check-in screen: it cannot see or change employee data.</p>
+    </div>
+  </header>
+  <section class="section form-section auth-panel">
+    <div class="section-body">
+      <form class="form" method="post" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="field">
+          <label for="username">Username</label>
+          <input id="username" name="username" maxlength="32" required autocomplete="off" autocapitalize="none" value="{{ request.form.get('username', '') }}">
+          <p class="field-hint">3–32 characters: lowercase letters, digits, dot, dash or underscore.</p>
+        </div>
+        <div class="field">
+          <label for="role">Role</label>
+          <select id="role" name="role">
+            {% for role in roles %}
+              <option value="{{ role }}" {% if request.form.get('role', 'kiosk') == role %}selected{% endif %}>{{ 'Admin: full access' if role == 'admin' else 'Kiosk: face check-in only' }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" maxlength="128" required autocomplete="new-password">
+          <p class="field-hint">At least {{ config.PASSWORD_MIN_LENGTH }} characters, not containing the username.</p>
+        </div>
+        <div class="field">
+          <label for="confirm_password">Confirm password</label>
+          <input id="confirm_password" name="confirm_password" type="password" maxlength="128" required autocomplete="new-password">
+        </div>
+        <div class="form-actions">
+          <button class="button" type="submit">Create user</button>
+          <a class="button button-secondary" href="{{ url_for('auth.users') }}">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </section>
+{% endblock %}

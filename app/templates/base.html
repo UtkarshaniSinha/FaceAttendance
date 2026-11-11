@@ -8,22 +8,44 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-  <header class="topbar">
-    <a class="brand" href="{{ url_for('main.dashboard') }}">FaceAttendance</a>
-    <nav aria-label="Main navigation">
-      <a href="{{ url_for('main.dashboard') }}">Dashboard</a>
-      <a href="{{ url_for('main.employees') }}">Employees</a>
-      <a class="button button-small" href="{{ url_for('main.create_employee_view') }}">Register employee</a>
-    </nav>
-  </header>
-  <main class="page-shell">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% for category, message in messages %}
-        <div class="notice notice-{{ category }}" role="status">{{ message }}</div>
-      {% endfor %}
-    {% endwith %}
-    {% block content %}{% endblock %}
-  </main>
+  <a class="skip-link" href="#content">Skip to content</a>
+  {% set endpoint = request.endpoint or '' %}
+  <div class="app">
+    <header class="sidebar">
+      <a class="brand" href="{{ url_for('main.dashboard') }}"><span class="brand-mark" aria-hidden="true">FA</span>FaceAttendance</a>
+      {% set user = current_user() %}
+      {% if user %}
+      <nav class="nav" aria-label="Main navigation">
+        {% if user.is_admin %}
+        <a href="{{ url_for('main.dashboard') }}" {% if endpoint == 'main.dashboard' %}aria-current="page"{% endif %}>Dashboard</a>
+        <a href="{{ url_for('main.employees') }}" {% if endpoint.startswith('main.') and endpoint != 'main.dashboard' or endpoint.startswith('enrollment.') %}aria-current="page"{% endif %}>Employees</a>
+        {% endif %}
+        <a href="{{ url_for('recognition.index') }}" {% if endpoint.startswith('recognition.') %}aria-current="page"{% endif %}>Face check-in</a>
+        {% if user.is_admin %}
+        <a href="{{ url_for('auth.users') }}" {% if endpoint in ('auth.users', 'auth.create_user_view') %}aria-current="page"{% endif %}>Users</a>
+        {% endif %}
+      </nav>
+      <div class="account">
+        <p class="account-name">Signed in as <strong>{{ user.username }}</strong> <span class="badge badge-neutral">{{ user.role }}</span></p>
+        <form method="post" action="{{ url_for('auth.logout') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="button button-secondary button-small" type="submit">Sign out</button>
+        </form>
+      </div>
+      {% endif %}
+      <p class="sidebar-note">Runs on this computer only. Face images and embeddings never leave it.</p>
+    </header>
+    <main class="main" id="content" tabindex="-1">
+      <div class="content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% for category, message in messages %}
+            <div class="notice notice-{{ category }}" role="status">{{ message }}</div>
+          {% endfor %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+  </div>
   {% block scripts %}{% endblock %}
 </body>
 </html>

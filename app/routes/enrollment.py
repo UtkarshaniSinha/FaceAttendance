@@ -8,6 +8,8 @@ from werkzeug.exceptions import NotFound
 from app.extensions import db
 from app.models import Employee
 from app.services.face_enrollment_service import (
+    consent_needs_update,
+    has_current_consent,
     EnrollmentError,
     add_sample,
     begin_enrollment,
@@ -18,10 +20,23 @@ from app.services.face_enrollment_service import (
     remove_sample,
     withdraw_consent,
 )
-from app.utils.biometric_storage import BiometricStorage
+from app.recognition.embedder import EmbedderBoxDetector
+from app.recognition.service import (
+    RecognitionImageError,
+    RecognitionUnavailable,
+    build_templates,
+    get_embedder,
+    template_count,
+)
+from app.utils.biometric_storage import BiometricDeletionError, BiometricStorage
 from app.utils.face_detector import HaarFaceDetector
 from app.utils.image_validator import ImageValidationError, ImageValidator
 
+
+DELETION_INCOMPLETE = (
+    "Deletion did not finish: another program (often antivirus) is using a stored face image. "
+    "Consent and enrolment records were not changed. Please try again in a moment."
+)
 
 enrollment_bp = Blueprint("enrollment", __name__, url_prefix="/employees/<int:employee_id>/enrollment")
 
@@ -38,10 +53,19 @@ def _storage() -> BiometricStorage:
 
 
 def _validator() -> ImageValidator:
-    # The detector is loaded once per app and reused (tests may replace it).
+    # Tests may install their own detector.
     detector = current_app.extensions.get("face_detector")
     if detector is None:
-        detector = current_app.extensions["face_detector"] = HaarFaceDetector()
+        try:
+            # Same detector as check-in (YuNet), so every accepted photo can
+            # also be turned into a recognition template.
+            detector = EmbedderBoxDetector(get_embedder())
+        except RecognitionUnavailable:
+            # Model files not installed yet: OpenCV's built-in Haar detector
+            # keeps enrolment working until they are.
+            detector = current_app.extensions.get("haar_face_detector")
+            if detector is None:
+                detector = current_app.extensions["haar_face_detector"] = HaarFaceDetector()
     return ImageValidator(current_app.config, detector=detector)
 
 
@@ -58,6 +82,9 @@ def index(employee_id: int):
         status=enrollment_status(employee),
         minimum_samples=current_app.config["ENROLLMENT_MIN_SAMPLES"],
         notice_version=current_app.config["CONSENT_NOTICE_VERSION"],
+        templates_ready=template_count(employee),
+        consent_current=has_current_consent(employee),
+        consent_outdated=consent_needs_update(employee),
     )
 
 
@@ -90,8 +117,8 @@ def start(employee_id: int):
 def capture(employee_id: int):
     employee = _employee(employee_id)
     enrollment = employee.face_enrollment
-    if not enrollment or enrollment.status != "in_progress" or not employee.biometric_consent.is_valid:
-        flash("Start the enrolment from this page before opening the camera.", "error")
+    if not enrollment or enrollment.status != "in_progress" or not has_current_consent(employee):
+        flash("Start the enrolment from this page, with consent to the current notice, before opening the camera.", "error")
         return _back(employee)
     return render_template(
         "enrollment/capture.html",
@@ -142,6 +169,8 @@ def discard_sample(employee_id: int, sample_id: int):
         count = remove_sample(employee, sample_id, _storage())
     except EnrollmentError as error:
         return jsonify(error=str(error)), 400
+    except BiometricDeletionError:
+        return jsonify(error=DELETION_INCOMPLETE), 503
     return jsonify(accepted_sample_count=count, message="Image removed.")
 
 
@@ -154,7 +183,34 @@ def complete(employee_id: int):
         flash(str(error), "error")
         return redirect(url_for("enrollment.capture", employee_id=employee.id))
     flash("Face enrolment is complete.", "success")
+    _generate_templates(employee)
     return _back(employee)
+
+
+def _generate_templates(employee: Employee) -> None:
+    """Create recognition templates; enrolment stays valid even if this fails."""
+
+    try:
+        report = build_templates(employee, _storage())
+    except RecognitionUnavailable as error:
+        flash(f"Recognition templates were not generated. {error}", "error")
+        return
+    except RecognitionImageError as error:
+        flash(str(error), "error")
+        return
+    if report.created == 0:
+        flash("The recognition detector found no usable face in the stored images. Delete the images and enrol again.", "error")
+    elif report.skipped:
+        flash(f"Recognition templates generated for {report.created} of {report.total} images; "
+              f"{report.skipped} image(s) were not usable by the recognition model.", "success")
+    else:
+        flash(f"Recognition templates generated for all {report.created} images.", "success")
+
+
+@enrollment_bp.post("/templates")
+def generate_templates(employee_id: int):
+    _generate_templates(_employee(employee_id))
+    return redirect(url_for("enrollment.index", employee_id=employee_id))
 
 
 @enrollment_bp.post("/withdraw")
@@ -165,12 +221,18 @@ def withdraw(employee_id: int):
         flash(f"Consent was withdrawn and {removed} stored face image(s) were deleted. Attendance history is kept.", "success")
     except EnrollmentError as error:
         flash(str(error), "error")
+    except BiometricDeletionError:
+        flash(DELETION_INCOMPLETE, "error")
     return _back(employee)
 
 
 @enrollment_bp.post("/delete")
 def delete_data(employee_id: int):
     employee = _employee(employee_id)
-    removed = delete_biometric_data(employee, _storage())
+    try:
+        removed = delete_biometric_data(employee, _storage())
+    except BiometricDeletionError:
+        flash(DELETION_INCOMPLETE, "error")
+        return _back(employee)
     flash(f"{removed} stored face image(s) were deleted. Consent remains recorded.", "success")
     return _back(employee)

@@ -1,20 +1,31 @@
 """CSRF protection tests: protection is ON and every form carries a token."""
 
+import itertools
 import re
 
 from flask.testing import FlaskClient
 
 from app.extensions import db
 from app.models import Employee
+from conftest import TEST_PASSWORD, make_user
 
 TOKEN_FIELD = re.compile(rb'name="csrf_token" value="([^"]+)"')
 REGISTRATION = {"employee_code": "EMP-501", "full_name": "Meera Iyer", "department": "Finance"}
 
 
-def browser(app) -> FlaskClient:
-    """A plain client with no helper, like a real browser."""
+_user_numbers = itertools.count(1)
 
-    return FlaskClient(app, app.response_class, use_cookies=True)
+
+def browser(app) -> FlaskClient:
+    """A plain client with no helper, like a real browser, signed in via the real form."""
+
+    client = FlaskClient(app, app.response_class, use_cookies=True)
+    username = f"admin{next(_user_numbers)}"
+    make_user(app, username)
+    token = TOKEN_FIELD.search(client.get("/login").data).group(1).decode()
+    response = client.post("/login", data={"username": username, "password": TEST_PASSWORD, "csrf_token": token})
+    assert response.status_code == 302, "sign-in through the form must succeed"
+    return client
 
 
 def employee_count(app) -> int:

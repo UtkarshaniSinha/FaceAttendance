@@ -5,6 +5,8 @@ Enrolment is a small state machine:
     Consent required --consent--> Not enrolled --start--> In progress
         --(>= minimum accepted images) complete--> Successfully enrolled
 
+    notice revised     : consent becomes "update required"; capture, templates
+                         and recognition stop until the employee consents again
     delete data        : any state -> Not enrolled   (images removed, consent kept)
     withdraw consent   : any state -> Consent withdrawn (images removed)
 
@@ -15,6 +17,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+from flask import current_app
 from sqlalchemy import select
 
 from app.extensions import db
@@ -27,7 +30,27 @@ class EnrollmentError(ValueError):
     """Raised when an enrolment action is not allowed."""
 
 
+def current_notice_version() -> str:
+    return str(current_app.config["CONSENT_NOTICE_VERSION"])
+
+
+def has_current_consent(employee: Employee) -> bool:
+    """Consent is granted, not withdrawn, and was given to the CURRENT notice.
+
+    Consent to an older notice version does not count: that notice may not
+    have described everything that is now collected.
+    """
+    consent = employee.biometric_consent
+    return bool(consent and consent.covers(current_notice_version()))
+
+
+def consent_needs_update(employee: Employee) -> bool:
+    consent = employee.biometric_consent
+    return bool(consent and consent.is_valid and not consent.covers(current_notice_version()))
+
+
 def _has_valid_consent(employee: Employee) -> bool:
+    """Granted and not withdrawn, any version (used only for withdrawal)."""
     return bool(employee.biometric_consent and employee.biometric_consent.is_valid)
 
 
@@ -35,9 +58,9 @@ def grant_consent(employee: Employee, notice_version: str) -> BiometricConsent:
     if not employee.is_active:
         raise EnrollmentError("Inactive employees cannot provide enrolment consent.")
     consent = employee.biometric_consent
-    if consent and consent.is_valid:
+    if consent and consent.covers(notice_version):
         return consent
-    if consent:  # consent given again after an earlier withdrawal
+    if consent:  # consent again: after a withdrawal, or to a revised notice
         consent.status, consent.notice_version = "granted", notice_version
         consent.granted_at, consent.withdrawn_at = datetime.now(timezone.utc), None
     else:
@@ -50,7 +73,9 @@ def grant_consent(employee: Employee, notice_version: str) -> BiometricConsent:
 def begin_enrollment(employee: Employee) -> FaceEnrollment:
     if not employee.is_active:
         raise EnrollmentError("Inactive employees cannot be enrolled.")
-    if not _has_valid_consent(employee):
+    if consent_needs_update(employee):
+        raise EnrollmentError("The consent notice has changed. The employee must read it and consent again before capture.")
+    if not has_current_consent(employee):
         raise EnrollmentError("Explicit biometric consent is required before capture.")
     enrollment = employee.face_enrollment
     if enrollment and enrollment.status == "complete":
@@ -68,8 +93,8 @@ def _active_enrollment(employee: Employee) -> FaceEnrollment:
     enrollment = employee.face_enrollment
     if not enrollment or enrollment.status != "in_progress":
         raise EnrollmentError("Start an enrolment before capturing images.")
-    if not employee.is_active or not _has_valid_consent(employee):
-        raise EnrollmentError("Valid biometric consent is required before capture.")
+    if not employee.is_active or not has_current_consent(employee):
+        raise EnrollmentError("Valid consent to the current notice is required before capture.")
     return enrollment
 
 
@@ -163,6 +188,8 @@ def enrollment_status(employee: Employee) -> str:
         return "Consent withdrawn"
     if not consent:
         return "Consent required"
+    if consent_needs_update(employee):
+        return "Consent update required"
     if not employee.face_enrollment:
         return "Not enrolled"
     return {"in_progress": "In progress", "complete": "Successfully enrolled"}.get(
@@ -176,6 +203,7 @@ def enrollment_badge(employee: Employee) -> str:
     return {
         "Successfully enrolled": "",
         "In progress": "badge-warning",
+        "Consent update required": "badge-warning",
         "Consent withdrawn": "badge-danger",
         "Failed": "badge-danger",
     }.get(enrollment_status(employee), "badge-muted")

@@ -217,13 +217,13 @@ def test_maximum_number_of_images_is_enforced(client, app, employee_id, detector
 @pytest.mark.parametrize(
     ("boxes", "kind", "message"),
     [
-        ([], "good", "No face was detected"),
-        ([FACE, (10, 10, 150, 150)], "good", "More than one face"),
-        ([(10, 10, 80, 80)], "good", "too small"),
-        ([FACE], "dark", "too dark"),
-        ([FACE], "bright", "overexposed"),
-        ([FACE], "flat", "too little contrast"),
-        ([FACE], "blurry", "too blurry"),
+        pytest.param([], "good", "No face was detected", id="no-face"),
+        pytest.param([FACE, (10, 10, 150, 150)], "good", "More than one face", id="two-faces"),
+        pytest.param([(10, 10, 80, 80)], "good", "too small", id="small-face"),
+        pytest.param([FACE], "dark", "too dark", id="dark"),
+        pytest.param([FACE], "bright", "overexposed", id="overexposed"),
+        pytest.param([FACE], "flat", "too little contrast", id="low-contrast"),
+        pytest.param([FACE], "blurry", "too blurry", id="blurry"),
     ],
 )
 def test_unsuitable_images_are_rejected_and_not_stored(client, app, employee_id, detector, boxes, kind, message):
@@ -235,17 +235,32 @@ def test_unsuitable_images_are_rejected_and_not_stored(client, app, employee_id,
     assert stored_files(app) == []
 
 
+# Payloads are built inside the test from these small builder functions.
+# Never parametrize with raw image bytes: pytest turns parameter values into
+# the test ID, and pytest stores that ID in the PYTEST_CURRENT_TEST environment
+# variable. A whole image as an ID exceeded Windows' 32,767-character limit
+# ("ValueError: the environment variable is longer than 32767 characters").
+INVALID_PAYLOADS = {
+    "empty": lambda: b"",
+    "not-an-image": lambda: b"this is not an image at all",
+    "gif": lambda: make_image(fmt="GIF"),
+    "too-small": lambda: make_image(size=(100, 80)),
+    "truncated-jpeg": lambda: make_image()[:400],
+}
+
+
 @pytest.mark.parametrize(
-    ("payload", "message"),
+    ("payload_name", "message"),
     [
-        (b"", "empty"),
-        (b"this is not an image at all", "not a valid image"),
-        (make_image(fmt="GIF"), "Only JPEG and PNG"),
-        (make_image(size=(100, 80)), "too small for reliable"),
-        (make_image()[:400], "corrupt or unreadable"),
+        pytest.param("empty", "empty", id="empty"),
+        pytest.param("not-an-image", "not a valid image", id="not-an-image"),
+        pytest.param("gif", "Only JPEG and PNG", id="gif"),
+        pytest.param("too-small", "too small for reliable", id="too-small"),
+        pytest.param("truncated-jpeg", "corrupt or unreadable", id="truncated-jpeg"),
     ],
 )
-def test_invalid_files_are_rejected(client, app, employee_id, detector, payload, message):
+def test_invalid_files_are_rejected(client, app, employee_id, detector, payload_name, message):
+    payload = INVALID_PAYLOADS[payload_name]()
     consent_and_start(client, employee_id)
     response = upload(client, employee_id, payload)
     assert response.status_code == 400
@@ -387,3 +402,77 @@ def test_storage_refuses_path_traversal_and_unknown_formats(tmp_path):
     assert "/" not in name and "\\" not in name
     storage.delete(name)
     assert list((tmp_path / "private").iterdir()) == []
+
+
+# ---------------------------------------------------------------- Windows file locks
+
+
+def _lock_files(monkeypatch, failures: int | None):
+    """Simulate Windows WinError 32: unlink fails `failures` times (None = always)."""
+
+    import pathlib
+
+    from app.utils import biometric_storage
+
+    real_unlink = pathlib.Path.unlink
+    calls = {"n": 0}
+
+    def locked_unlink(self, missing_ok=False):
+        calls["n"] += 1
+        if failures is None or calls["n"] <= failures:
+            raise PermissionError(32, "The process cannot access the file because it is being used by another process")
+        return real_unlink(self, missing_ok=missing_ok)
+
+    monkeypatch.setattr(pathlib.Path, "unlink", locked_unlink)
+    monkeypatch.setattr(biometric_storage.time, "sleep", lambda _s: None)
+    return calls
+
+
+def test_briefly_locked_file_is_deleted_after_retrying(tmp_path, monkeypatch):
+    storage = BiometricStorage(str(tmp_path / "private"))
+    name = storage.store(b"bytes", "jpg")
+    calls = _lock_files(monkeypatch, failures=2)
+    storage.delete(name)
+    assert calls["n"] == 3
+    assert list((tmp_path / "private").iterdir()) == []
+
+
+def test_persistently_locked_file_raises_a_clear_error_without_paths(tmp_path, monkeypatch):
+    from app.utils.biometric_storage import BiometricDeletionError
+
+    storage = BiometricStorage(str(tmp_path / "private"))
+    name = storage.store(b"bytes", "jpg")
+    _lock_files(monkeypatch, failures=None)
+    with pytest.raises(BiometricDeletionError) as error:
+        storage.delete(name)
+    assert str(tmp_path) not in str(error.value) and name not in str(error.value)
+
+
+@pytest.mark.parametrize("action", ["withdraw", "delete"], ids=["withdraw-consent", "delete-images"])
+def test_locked_files_never_produce_a_false_deletion_message(client, app, employee_id, detector, monkeypatch, action):
+    consent_and_start(client, employee_id)
+    for _ in range(3):
+        upload(client, employee_id, make_image())
+    _lock_files(monkeypatch, failures=None)
+
+    response = client.post(f"{base(employee_id)}/{action}", follow_redirects=True)
+    assert response.status_code == 200
+    assert b"Deletion did not finish" in response.data
+    assert b"were deleted" not in response.data and b"Consent was withdrawn" not in response.data
+    with app.app_context():
+        assert db.session.query(BiometricConsent).one().is_valid  # consent unchanged
+        assert db.session.query(EnrollmentSample).count() == 3  # records unchanged
+    monkeypatch.undo()
+    retry = client.post(f"{base(employee_id)}/{action}", follow_redirects=True)  # works once unlocked
+    assert b"were deleted" in retry.data or b"Consent was withdrawn" in retry.data
+    assert stored_files(app) == []
+
+
+def test_locked_file_on_discard_returns_an_error(client, app, employee_id, detector, monkeypatch):
+    consent_and_start(client, employee_id)
+    sample_id = upload(client, employee_id, make_image()).get_json()["sample_id"]
+    _lock_files(monkeypatch, failures=None)
+    response = client.post(f"{base(employee_id)}/samples/{sample_id}/delete", headers={"Accept": "application/json"})
+    assert response.status_code == 503 and "Deletion did not finish" in response.get_json()["error"]
+    with app.app_context():
+        assert db.session.get(EnrollmentSample, sample_id) is not None
