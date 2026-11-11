@@ -6,7 +6,18 @@ This is a college portfolio project that runs on one computer. It is not a finis
 
 ## Why I built this
 
-_(Write this part yourself before publishing: what got you interested, what you wanted to learn, and what your first version looked like.)_
+I wanted to learn how face recognition actually works, not just call a library and hope for the best. Face attendance systems already exist, but the simple ones I looked at (including many tutorials) stop at "it recognised me once". They have no consent step, no protection against marking someone twice, no login, and no honest answer to "how accurate is it?". So I set out to take that kind of software and upgrade it into something closer to what a real workplace would need.
+
+Building it taught me concepts I had only read about before:
+
+- **Computer vision:** detecting faces, aligning them, and turning a face into an embedding that can be compared with cosine similarity
+- **Choosing and judging models:** why my first LBPH version looked good but proved nothing, and why a pretrained model like SFace works better
+- **Web development with Flask:** routes, templates, forms and a SQLite database through SQLAlchemy
+- **Security:** logins with roles, password hashing, CSRF tokens, security headers and safe error pages
+- **Privacy for biometric data:** asking for consent first, storing photos privately, and deleting face data when consent is withdrawn
+- **Testing:** writing over 200 pytest tests, including one where 8 check-ins arrive at the same moment
+
+The first version was a small LBPH script trained on public celebrity photos. This repository is the upgrade: a full web app built around the same idea.
 
 ## Features
 
